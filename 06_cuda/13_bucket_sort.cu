@@ -4,7 +4,7 @@
 __global__ void count_bucket(int n, int *key, int range, int *bucket){
   const int index = blockIdx.x*blockDim.x +threadIdx.x;
   //for(...; index <n; ...)
-  if(index < n){ //# of threads is not n, but multiple ofTHREAD_PER_BLOCK
+  if(index < n){ //# of threads is not n, but multiple of THREAD_PER_BLOCK
     //bucket[key[i]]++;
     atomicAdd(&bucket[key[index]], 1);
   }
@@ -20,7 +20,7 @@ __global__ void write_key(int n, int *key, int range, int *bucket){
   key[index] = i-1;
 
   /*
-  this function(simple_sum(O(range)) and liner_search(O(range))) is O(range)
+  this code, simple_sum(O(range)) and liner_search(O(range)), is O(range)
 
   if range is very large,
   scan(O(log(range))) and binary_search(O(log(range))) is better
@@ -50,7 +50,9 @@ int main(){
   //ceil(n/THREAD_PER_BLOCK)
   count_bucket<<<m, THREAD_PER_BLOCK>>>(n, key, range, bucket);
   cudaDeviceSynchronize();
+  //To sync all threads. __syncthreads() is not enough as it only syncs within a block
   write_key<<<m, THREAD_PER_BLOCK>>>(n, key, range, bucket);
+  cudaDeviceSynchronize();
 
   cudaFree(bucket);
 
